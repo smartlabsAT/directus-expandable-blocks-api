@@ -1,0 +1,10 @@
+{
+  "name": "directus-extension-expandable-blocks-api",
+  "version": "0.1.0",
+  "description": "API endpoint extension for expandable blocks",
+  "directus:extension": {
+    "type": "endpoint",
+    "path": "dist/index.js",
+    "source": "src/index.ts"
+  }
+}
