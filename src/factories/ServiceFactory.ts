@@ -15,3 +15,8 @@ export class ServiceFactory {
         return {};
     }
 }
+
+export interface ServiceConfig {
+    lazy?: boolean;
+    singleton?: boolean;
+}
