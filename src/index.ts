@@ -7,7 +7,7 @@ import { rateLimitMiddleware } from './middleware/rate-limit';
 
 export default defineEndpoint({
     id: 'expandable-blocks-api',
-    handler: (router, context) => {
+    handler: (router: any, context: any) => {
         const serviceFactory = new ServiceFactory(context);
         const detailHandler = new DetailHandler(serviceFactory, context.logger);
         
@@ -17,7 +17,7 @@ export default defineEndpoint({
         router.use(rateLimitMiddleware());
         
         // Routes
-        router.get('/health', (req, res) => {
+        router.get('/health', (_req: any, res: any) => {
             res.json({ 
                 status: 'ok', 
                 version: '1.0.0',
@@ -25,7 +25,7 @@ export default defineEndpoint({
             });
         });
         
-        router.post('/:collection/detail', (req, res, next) => {
+        router.post('/:collection/detail', (req: any, res: any, next: any) => {
             detailHandler.handle(req, res).catch(next);
         });
         

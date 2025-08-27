@@ -1,5 +1,5 @@
 export const errorHandler = (context: any) => {
-    return (err: any, req: any, res: any, next: any) => {
+    return (err: any, _req: any, res: any, _next: any) => {
         const status = err.status || 500;
         const message = err.message || 'Internal Server Error';
         

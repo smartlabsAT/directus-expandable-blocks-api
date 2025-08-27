@@ -22,7 +22,7 @@ describe('Health Endpoint', () => {
         };
         
         // Execute the endpoint handler
-        endpoint.handler(mockRouter, mockContext);
+        (endpoint as any).handler(mockRouter, mockContext);
         
         // Find the health endpoint handler
         const healthCall = mockRouter.get.mock.calls.find(

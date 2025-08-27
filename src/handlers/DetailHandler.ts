@@ -1,10 +1,10 @@
-import { Knex } from 'knex';
-import { 
+import type { Knex } from 'knex';
+import type { 
     DirectusRequest, 
     DirectusResponse
 } from '../types/directus-api';
-import { ItemWithUsage, UsageLocation, UsageSummary } from '../types/common';
-import { ServiceFactory } from '../factories/ServiceFactory';
+import type { ItemWithUsage, UsageLocation, UsageSummary } from '../types/common';
+import type { ServiceFactory } from '../factories/ServiceFactory';
 
 /**
  * Handler for retrieving item details with usage tracking across M2A relationships
@@ -63,7 +63,7 @@ export class DetailHandler {
         collection: string, 
         ids: (number | string)[], 
         fields?: string,
-        accountability?: any
+        _accountability?: any
     ): Promise<ItemWithUsage[]> {
         const database = this.serviceFactory.getDatabase();
         
@@ -81,7 +81,7 @@ export class DetailHandler {
             const allUsageLocations = await this.batchGetUsageLocations(database, collection, ids);
             
             // Map items with their usage information
-            const itemsWithUsage: ItemWithUsage[] = items.map(item => {
+            const itemsWithUsage: ItemWithUsage[] = items.map((item: any) => {
                 if (!item || !item.id) {
                     this.logger?.warn(`Skipping invalid item:`, item);
                     return null;

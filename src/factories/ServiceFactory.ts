@@ -33,7 +33,8 @@ export class ServiceFactory {
                 const { ItemsService: DirectusItemsService } = require('@directus/api');
                 ItemsService = DirectusItemsService;
             } catch (error) {
-                throw new Error(`ItemsService not available in Directus context: ${error.message}`);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                throw new Error(`ItemsService not available in Directus context: ${errorMessage}`);
             }
         }
         
