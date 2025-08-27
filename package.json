@@ -1,6 +1,6 @@
 {
   "name": "directus-extension-expandable-blocks-api",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "API endpoint extension for expandable blocks",
   "author": "Christopher Schwarz <christopher@neugebauerschwarz.com>",
   "license": "MIT",
@@ -22,12 +22,37 @@
   "scripts": {
     "build": "directus-extension build",
     "dev": "directus-extension build -w --no-minify",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit && echo '✅ TypeScript type-check passed!'",
+    "type-check:strict": "tsc --noEmit --project config/tsconfig.strict.json",
+    "type-check:quality": "tsc --noEmit --project config/tsconfig.quality.json",
+    "test": "vitest --config config/vitest.config.ts",
+    "test:ui": "vitest --ui --config config/vitest.config.ts",
+    "test:coverage": "vitest --coverage --config config/vitest.config.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "qodana": "./config/scripts/qodana-local.sh",
+    "clean:outputs": "./config/scripts/cleanup-outputs.sh",
+    "precommit": "npm run type-check && npm run lint",
+    "prepublishOnly": "npm run type-check && npm run build && npm run test -- --run",
+    "version": "npm run build && git add dist/",
+    "postversion": "git push && git push --tags",
+    "release:patch": "npm version patch",
+    "release:minor": "npm version minor",
+    "release:major": "npm version major"
   },
   "devDependencies": {
     "@directus/extensions-sdk": "^11.0.0",
     "@directus/types": "^13.2.0",
+    "@eslint/js": "^9.34.0",
+    "@types/knex": "^0.16.1",
     "@types/node": "^20.10.5",
-    "typescript": "^5.3.3"
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
+    "@vitest/coverage-v8": "^1.6.1",
+    "@vitest/ui": "^1.6.1",
+    "eslint": "^8.57.1",
+    "knex": "^3.1.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.1"
   }
 }

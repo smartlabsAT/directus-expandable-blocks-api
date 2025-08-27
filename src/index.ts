@@ -1,11 +1,12 @@
 import { defineEndpoint } from '@directus/extensions-sdk';
+import type { EndpointConfig } from '@directus/extensions';
 import { ServiceFactory } from './factories/ServiceFactory';
 import { DetailHandler } from './handlers/DetailHandler';
 import { errorHandler } from './middleware/error-handler';
 import { securityHeaders, corsMiddleware } from './middleware/security-headers';
 import { rateLimitMiddleware } from './middleware/rate-limit';
 
-export default defineEndpoint({
+const endpoint: EndpointConfig = defineEndpoint({
     id: 'expandable-blocks-api',
     handler: (router, context) => {
         const serviceFactory = new ServiceFactory(context);
@@ -33,3 +34,5 @@ export default defineEndpoint({
         router.use(errorHandler(context));
     }
 });
+
+export default endpoint;

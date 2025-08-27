@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { Knex } from 'knex';
+import type { Request, Response } from 'express';
+import type { Knex } from 'knex';
 
 // Directus Core Types
 export interface Accountability {
@@ -55,5 +55,5 @@ export interface DirectusRequest extends Request {
     schema?: Schema;
 }
 
-export interface DirectusResponse extends Response {}
+export type DirectusResponse = Response;
 

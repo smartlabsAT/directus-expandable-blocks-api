@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DetailHandler } from '../src/handlers/DetailHandler';
-import { ServiceFactory } from '../src/factories/ServiceFactory';
 
 describe('DetailHandler', () => {
     let handler: DetailHandler;
@@ -154,10 +153,17 @@ describe('DetailHandler', () => {
                 }
             ];
             
+            // Setup the mock chain properly for batch loading
+            mockDatabase.select = vi.fn().mockReturnThis();
+            mockDatabase.from = vi.fn().mockReturnThis();
+            mockDatabase.leftJoin = vi.fn().mockReturnThis();
+            mockDatabase.where = vi.fn().mockReturnThis();
+            
+            // First call for items, second for page usages, third for expandable usages
             mockDatabase.whereIn = vi.fn()
-                .mockResolvedValueOnce(mockItems)
-                .mockResolvedValueOnce(mockPageUsages)
-                .mockResolvedValueOnce([]);
+                .mockImplementationOnce(() => Promise.resolve(mockItems))
+                .mockImplementationOnce(() => Promise.resolve(mockPageUsages))
+                .mockImplementationOnce(() => Promise.resolve([]));
             
             await handler.handle(mockRequest, mockResponse);
             
@@ -184,10 +190,20 @@ describe('DetailHandler', () => {
                 }
             ];
             
+            // Setup the mock chain properly for batch loading
+            mockDatabase.select = vi.fn().mockReturnThis();
+            mockDatabase.from = vi.fn().mockReturnThis();
+            mockDatabase.leftJoin = vi.fn().mockReturnThis();
+            mockDatabase.where = vi.fn().mockReturnThis();
+            
+            // Update mockRequest to have id 2 to match
+            mockRequest.body.ids = [2];
+            
+            // First call for items, second for page usages (empty), third for expandable usages
             mockDatabase.whereIn = vi.fn()
-                .mockResolvedValueOnce(mockItems)
-                .mockResolvedValueOnce([])
-                .mockResolvedValueOnce(mockExpandableUsages);
+                .mockImplementationOnce(() => Promise.resolve(mockItems))
+                .mockImplementationOnce(() => Promise.resolve([]))
+                .mockImplementationOnce(() => Promise.resolve(mockExpandableUsages));
             
             await handler.handle(mockRequest, mockResponse);
             
@@ -202,10 +218,6 @@ describe('DetailHandler', () => {
         
         it('should build correct usage summary', async () => {
             const mockItems = [{ id: 1, name: 'Item 1' }];
-            const mockUsages = [
-                { /* mock page usage */ },
-                { /* mock expandable usage */ }
-            ];
             
             mockDatabase.whereIn = vi.fn()
                 .mockResolvedValueOnce(mockItems)
