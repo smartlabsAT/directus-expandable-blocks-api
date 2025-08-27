@@ -1,14 +1,13 @@
 import { defineEndpoint } from '@directus/extensions-sdk';
-import type { EndpointConfig } from '@directus/extensions';
 import { ServiceFactory } from './factories/ServiceFactory';
 import { DetailHandler } from './handlers/DetailHandler';
 import { errorHandler } from './middleware/error-handler';
 import { securityHeaders, corsMiddleware } from './middleware/security-headers';
 import { rateLimitMiddleware } from './middleware/rate-limit';
 
-const endpoint: EndpointConfig = defineEndpoint({
+export default defineEndpoint({
     id: 'expandable-blocks-api',
-    handler: (router, context) => {
+    handler: (router: any, context: any) => {
         const serviceFactory = new ServiceFactory(context);
         const detailHandler = new DetailHandler(serviceFactory, context.logger);
         
@@ -18,7 +17,7 @@ const endpoint: EndpointConfig = defineEndpoint({
         router.use(rateLimitMiddleware());
         
         // Routes
-        router.get('/health', (req, res) => {
+        router.get('/health', (_req: any, res: any) => {
             res.json({ 
                 status: 'ok', 
                 version: '1.0.0',
@@ -26,7 +25,7 @@ const endpoint: EndpointConfig = defineEndpoint({
             });
         });
         
-        router.post('/:collection/detail', (req, res, next) => {
+        router.post('/:collection/detail', (req: any, res: any, next: any) => {
             detailHandler.handle(req, res).catch(next);
         });
         
@@ -34,5 +33,3 @@ const endpoint: EndpointConfig = defineEndpoint({
         router.use(errorHandler(context));
     }
 });
-
-export default endpoint;
