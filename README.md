@@ -1,18 +1,20 @@
 # Directus Expandable Blocks API
 
-API endpoint extension for the [Directus Expandable Blocks](https://github.com/smartlabsAT/directus-expandable-blocks) interface extension.
+A focused Directus API extension for tracking item usage across M2A (Many-to-Any) relationships. This extension provides functionality that the native Directus API cannot offer - specifically tracking where items are used throughout your content structure.
 
-## Overview
+## Purpose
 
-This extension provides advanced relationship tracking and usage management for the Expandable Blocks interface. It adds critical functionality for safely managing M2A (Many-to-Any) relationships by tracking where items are used across your Directus instance.
+**"The API should only do what the native Directus API cannot."**
+
+This extension focuses exclusively on relation/usage tracking - finding where content items are referenced across different collections through M2A junction tables.
 
 ## Key Features
 
-- **Usage Tracking**: Track where each block is used across collections
-- **Safe Deletion**: Prevent accidental deletion of blocks that are in use
-- **Relationship Analysis**: Understand the connections between your content
-- **Junction Support**: Handle complex M2A relationships with junction tables
-- **Performance Optimized**: Efficient queries with caching support
+- **Usage Tracking**: Track where items are used across M2A relationships
+- **Junction ID Support**: Returns junction table IDs for proper relationship management
+- **Batch Operations**: Optimized queries for loading multiple items efficiently
+- **Performance Focused**: Reduced database queries through batch loading
+- **Minimal Surface Area**: Only essential endpoints, reducing maintenance burden
 
 ## Installation
 
@@ -30,73 +32,94 @@ cp -r dist /path/to/directus/extensions/expandable-blocks-api
 ## API Endpoints
 
 ### Health Check
+```http
+GET /expandable-blocks/health
 ```
-GET /expandable-blocks-api/health
-```
-Verify the API is running and accessible.
 
-### Collection Metadata
-```
-GET /expandable-blocks-api/:collection/metadata
-```
-Retrieve metadata about a collection including field information and display configuration.
+Returns the API status and version information.
 
-### Search Items
+**Response:**
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "description": "Expandable Blocks API - Relation/Usage Tracking"
+}
 ```
-GET /expandable-blocks-api/:collection/search
-```
-Search for items within a collection with filtering and pagination support.
 
-**Query Parameters:**
-- `search` - Search term
-- `limit` - Number of results (default: 10)
-- `page` - Page number for pagination
-- `filter` - Additional filter criteria
+### Detail with Usage Tracking
+```http
+POST /expandable-blocks/:collection/detail
+```
 
-### Item Details with Usage
-```
-POST /expandable-blocks-api/:collection/detail
-```
-Get detailed information about items including their usage locations.
+Load items with comprehensive usage information across M2A relationships. This is the core functionality that native Directus API cannot provide.
 
 **Request Body:**
 ```json
 {
-  "ids": ["item-id-1", "item-id-2"],
-  "fields": ["*.*"]
+  "ids": [1, 2, 3],
+  "fields": "id,name,status"  // Optional field selection
 }
 ```
 
 **Response:**
 ```json
 {
-  "data": [{
-    "id": "item-id",
-    "usage_locations": [
-      {
-        "collection": "pages",
-        "id": "page-1",
-        "field": "content_blocks",
-        "title": "Homepage",
-        "junction_id": "junction-123"
+  "data": [
+    {
+      "id": 1,
+      "name": "Item Name",
+      "status": "published",
+      "usage_locations": [
+        {
+          "id": 10,
+          "collection": "pages",
+          "title": "Homepage",
+          "status": "published",
+          "field": "content",
+          "sort": 1,
+          "path": "/home",
+          "edit_url": "/admin/content/pages/10",
+          "junction_id": 101  // Critical for relationship management
+        }
+      ],
+      "usage_summary": {
+        "total_count": 1,
+        "by_collection": { "pages": 1 },
+        "by_status": { "published": 1 },
+        "by_field": { "content": 1 }
       }
-    ],
-    "usage_summary": {
-      "total_count": 3,
-      "can_delete": false
     }
-  }]
+  ],
+  "meta": {
+    "collection": "content_blocks",
+    "total_count": 1,
+    "timestamp": "2025-01-27T10:00:00.000Z"
+  }
 }
 ```
 
-## How It Works
+## Usage Tracking
 
-The API extension works in conjunction with the Expandable Blocks interface to provide:
+The API tracks usage across multiple junction tables:
 
-1. **Relationship Detection**: Automatically discovers M2A relationships and junction tables
-2. **Usage Analysis**: Tracks where each block is referenced across all collections
-3. **Safe Operations**: Prevents breaking content by warning about existing usages
-4. **Junction Resolution**: Properly handles junction table relationships with unique identifiers
+- **pages_m2a**: Tracks items used in pages
+- **expandable_expandable**: Tracks items used in expandable blocks
+- Additional junction tables can be added as needed
+
+Each usage location includes:
+- `junction_id`: The ID in the junction table (critical for updates/deletes)
+- `collection`: Where the item is used
+- `title`: Human-readable reference
+- `status`: Current status of the parent item
+- `edit_url`: Direct link to edit the parent item
+
+## Performance Optimizations
+
+- **Batch Loading**: All usage data is loaded in batch queries
+- **Optimized Queries**: Uses efficient SQL joins
+- **Minimal Overhead**: Only loads what's necessary
+- **Single Round-Trip**: Reduces database queries significantly
 
 ## Requirements
 
@@ -120,16 +143,30 @@ npm test
 npm run build
 ```
 
-## Configuration
+## Architecture
 
-The extension automatically detects M2A relationships in your Directus schema. No additional configuration is required for basic usage.
+```
+src/
+├── index.ts                 # Main endpoint definition (2 endpoints only)
+├── handlers/
+│   └── DetailHandler.ts     # Core usage tracking logic
+├── factories/
+│   └── ServiceFactory.ts    # Service instantiation
+├── middleware/
+│   ├── error-handler.ts     # Error handling
+│   ├── rate-limit.ts        # Rate limiting
+│   └── security-headers.ts  # Security headers
+└── types/                   # TypeScript definitions
+```
 
-## Use Cases
+## Philosophy
 
-- **Content Management**: Track which pages use specific content blocks
-- **Asset Management**: Know where images and videos are embedded
-- **Safe Deletion**: Get warnings before deleting items that are in use
-- **Content Auditing**: Understand content relationships and dependencies
+This extension follows the principle of doing only what Directus cannot do natively. By focusing exclusively on relation/usage tracking, we maintain:
+
+- **Less code** = Less maintenance = Fewer bugs
+- **Clear purpose** = Easier to understand
+- **Focused functionality** = Better performance
+- **Minimal API surface** = Reduced security risk
 
 ## License
 

@@ -1,14 +1,15 @@
 import { Knex } from 'knex';
 import { 
     DirectusRequest, 
-    DirectusResponse, 
-    Logger,
-    PagesM2ARow,
-    ExpandableExpandableRow 
+    DirectusResponse
 } from '../types/directus-api';
 import { ItemWithUsage, UsageLocation, UsageSummary } from '../types/common';
 import { ServiceFactory } from '../factories/ServiceFactory';
 
+/**
+ * Handler for retrieving item details with usage tracking across M2A relationships
+ * This is the core functionality that native Directus API cannot provide
+ */
 export class DetailHandler {
     constructor(private serviceFactory: ServiceFactory, private logger: any) {}
     
@@ -56,6 +57,7 @@ export class DetailHandler {
     
     /**
      * Load items from the specified collection with usage information
+     * Optimized to batch load usage data for better performance
      */
     private async loadItems(
         collection: string, 
@@ -66,55 +68,34 @@ export class DetailHandler {
         const database = this.serviceFactory.getDatabase();
         
         try {
-            // Load items directly from database using Knex instead of ItemsService to avoid schema issues
-            this.logger?.debug(`Loading items from collection ${collection} using direct database query:`, { ids, fields });
+            this.logger?.debug(`Loading items from collection ${collection}:`, { ids, fields });
             
-            let query = database.select('*').from(collection).whereIn('id', ids);
-            
-            // If specific fields are requested, select only those
-            if (fields) {
-                let fieldList: string[];
-                if (typeof fields === 'string') {
-                    // Handle Directus special syntax like '*.*' 
-                    if (fields === '*' || fields.includes('*.*')) {
-                        fieldList = ['*'];  // Just select all fields from the main table
-                    } else {
-                        fieldList = fields.split(',').map(f => f.trim()).filter(f => !f.includes('.'));
-                    }
-                } else if (Array.isArray(fields)) {
-                    // Filter out relation fields (those with dots) for direct SQL query
-                    fieldList = fields.filter(f => typeof f === 'string' && !f.includes('.'));
-                    if (fieldList.length === 0) {
-                        fieldList = ['*'];
-                    }
-                } else {
-                    fieldList = ['*'];
-                }
-                query = database.select(fieldList).from(collection).whereIn('id', ids);
-            }
-            
+            // Build field selection
+            const fieldList = this.parseFields(fields);
+            const query = database.select(fieldList).from(collection).whereIn('id', ids);
             const items = await query;
             
-            this.logger?.info(`Loaded ${items.length} items from ${collection} via direct database query`);
+            this.logger?.info(`Loaded ${items.length} items from ${collection}`);
             
-            // For each item, get usage information
-            const itemsWithUsage: ItemWithUsage[] = [];
+            // Batch load all usage information for performance
+            const allUsageLocations = await this.batchGetUsageLocations(database, collection, ids);
             
-            for (const item of items) {
+            // Map items with their usage information
+            const itemsWithUsage: ItemWithUsage[] = items.map(item => {
                 if (!item || !item.id) {
                     this.logger?.warn(`Skipping invalid item:`, item);
-                    continue;
+                    return null;
                 }
                 
-                const usageLocations = await this.getUsageLocations(database, collection, item.id);
+                const usageLocations = allUsageLocations.get(String(item.id)) || [];
                 const usageSummary = this.buildUsageSummary(usageLocations);
                 
-                itemsWithUsage.push({
+                return {
                     ...item,
                     usage_locations: usageLocations,
                     usage_summary: usageSummary
-                });
-            }
+                };
+            }).filter(Boolean) as ItemWithUsage[];
             
             return itemsWithUsage;
         } catch (error) {
@@ -124,38 +105,76 @@ export class DetailHandler {
     }
     
     /**
-     * Find where an item is being used across different collections
+     * Parse field selection string/array into proper field list
      */
-    private async getUsageLocations(database: Knex, collection: string, itemId: number | string): Promise<UsageLocation[]> {
-        const locations: UsageLocation[] = [];
+    private parseFields(fields?: string | string[]): string[] {
+        if (!fields) return ['*'];
+        
+        if (typeof fields === 'string') {
+            if (fields === '*' || fields.includes('*.*')) {
+                return ['*'];
+            }
+            return fields.split(',')
+                .map(f => f.trim())
+                .filter(f => !f.includes('.')) || ['*'];
+        }
+        
+        if (Array.isArray(fields)) {
+            const filtered = fields.filter(f => typeof f === 'string' && !f.includes('.'));
+            return filtered.length > 0 ? filtered : ['*'];
+        }
+        
+        return ['*'];
+    }
+    
+    /**
+     * Batch load usage locations for multiple items for better performance
+     */
+    private async batchGetUsageLocations(
+        database: Knex, 
+        collection: string, 
+        itemIds: (number | string)[]
+    ): Promise<Map<string, UsageLocation[]>> {
+        const usageMap = new Map<string, UsageLocation[]>();
         
         try {
-            this.logger?.debug(`Finding usage for ${collection}:${itemId}`);
+            // Initialize map with empty arrays
+            itemIds.forEach(id => usageMap.set(String(id), []));
             
-            // Check pages_m2a table for usage in pages
-            const pageUsages = await this.findPageUsages(database, collection, itemId);
-            locations.push(...pageUsages);
+            // Batch load page usages
+            const pageUsages = await this.batchFindPageUsages(database, collection, itemIds);
+            pageUsages.forEach((locations, itemId) => {
+                const existing = usageMap.get(itemId) || [];
+                usageMap.set(itemId, [...existing, ...locations]);
+            });
             
-            // Check expandable_expandable table for usage in expandable blocks
-            const expandableUsages = await this.findExpandableUsages(database, collection, itemId);
-            locations.push(...expandableUsages);
+            // Batch load expandable usages
+            const expandableUsages = await this.batchFindExpandableUsages(database, collection, itemIds);
+            expandableUsages.forEach((locations, itemId) => {
+                const existing = usageMap.get(itemId) || [];
+                usageMap.set(itemId, [...existing, ...locations]);
+            });
             
-            // Additional usage checks can be added here for other junction tables
-            
-            this.logger?.debug(`Found ${locations.length} usage locations for ${collection}:${itemId}`);
-            
-            return locations;
+            return usageMap;
         } catch (error) {
-            this.logger?.warn(`Failed to get usage locations for ${collection}:${itemId}:`, error);
-            return [];
+            this.logger?.warn(`Failed to batch get usage locations:`, error);
+            return usageMap;
         }
     }
     
     /**
-     * Find usage in pages via pages_m2a junction table
+     * Batch find usage in pages via pages_m2a junction table
      */
-    private async findPageUsages(database: Knex, collection: string, itemId: number | string): Promise<UsageLocation[]> {
+    private async batchFindPageUsages(
+        database: Knex, 
+        collection: string, 
+        itemIds: (number | string)[]
+    ): Promise<Map<string, UsageLocation[]>> {
+        const usageMap = new Map<string, UsageLocation[]>();
+        
         try {
+            const stringIds = itemIds.map(id => String(id));
+            
             const results = await database
                 .select([
                     'm2a.id',
@@ -171,30 +190,49 @@ export class DetailHandler {
                 .from('pages_m2a as m2a')
                 .leftJoin('pages as p', 'm2a.pages_id', 'p.id')
                 .where('m2a.collection', collection)
-                .where('m2a.item', itemId.toString());
+                .whereIn('m2a.item', stringIds);
             
-            return results.map((row: any) => ({
-                id: row.page_id || row.pages_id,
-                collection: 'pages',
-                title: row.page_title || `Page ${row.page_id || row.pages_id}`,
-                status: row.page_status || 'draft',
-                field: 'content', // Pages use M2A for main content
-                sort: row.sort || 0,
-                path: row.page_slug ? `/${row.page_slug}` : undefined,
-                edit_url: row.page_id ? `/admin/content/pages/${row.page_id}` : undefined,
-                junction_id: row.id
-            }));
+            // Group results by item ID
+            results.forEach((row: any) => {
+                const itemId = String(row.item);
+                const location: UsageLocation = {
+                    id: row.page_id || row.pages_id,
+                    collection: 'pages',
+                    title: row.page_title || `Page ${row.page_id || row.pages_id}`,
+                    status: row.page_status || 'draft',
+                    field: 'content',
+                    sort: row.sort || 0,
+                    path: row.page_slug ? `/${row.page_slug}` : undefined,
+                    edit_url: row.page_id ? `/admin/content/pages/${row.page_id}` : undefined,
+                    junction_id: row.id
+                };
+                
+                if (!usageMap.has(itemId)) {
+                    usageMap.set(itemId, []);
+                }
+                usageMap.get(itemId)!.push(location);
+            });
+            
+            return usageMap;
         } catch (error) {
-            this.logger?.warn(`Failed to find page usages for ${collection}:${itemId}:`, error);
-            return [];
+            this.logger?.warn(`Failed to batch find page usages:`, error);
+            return usageMap;
         }
     }
     
     /**
-     * Find usage in expandable blocks via expandable_expandable junction table
+     * Batch find usage in expandable blocks via expandable_expandable junction table
      */
-    private async findExpandableUsages(database: Knex, collection: string, itemId: number | string): Promise<UsageLocation[]> {
+    private async batchFindExpandableUsages(
+        database: Knex,
+        collection: string,
+        itemIds: (number | string)[]
+    ): Promise<Map<string, UsageLocation[]>> {
+        const usageMap = new Map<string, UsageLocation[]>();
+        
         try {
+            const stringIds = itemIds.map(id => String(id));
+            
             const results = await database
                 .select([
                     'ee.id',
@@ -210,22 +248,33 @@ export class DetailHandler {
                 .from('expandable_expandable as ee')
                 .leftJoin('expandable as e', 'ee.expandable_id', 'e.id')
                 .where('ee.collection', collection)
-                .where('ee.item', itemId.toString());
+                .whereIn('ee.item', stringIds);
             
-            return results.map((row: any) => ({
-                id: row.parent_id || row.expandable_id,
-                collection: 'expandable',
-                title: `Expandable Block ${row.parent_id || row.expandable_id} (${row.area || row.parent_area})`,
-                status: row.parent_status || 'draft',
-                field: row.area || 'main',
-                sort: row.sort || 0,
-                edit_url: row.parent_id ? `/admin/content/expandable/${row.parent_id}` : undefined,
-                junction_id: row.id,
-                area: row.area || row.parent_area
-            }));
+            // Group results by item ID
+            results.forEach((row: any) => {
+                const itemId = String(row.item);
+                const location: UsageLocation = {
+                    id: row.parent_id || row.expandable_id,
+                    collection: 'expandable',
+                    title: `Expandable Block ${row.parent_id || row.expandable_id} (${row.area || row.parent_area})`,
+                    status: row.parent_status || 'draft',
+                    field: row.area || 'main',
+                    sort: row.sort || 0,
+                    edit_url: row.parent_id ? `/admin/content/expandable/${row.parent_id}` : undefined,
+                    junction_id: row.id,
+                    area: row.area || row.parent_area
+                };
+                
+                if (!usageMap.has(itemId)) {
+                    usageMap.set(itemId, []);
+                }
+                usageMap.get(itemId)!.push(location);
+            });
+            
+            return usageMap;
         } catch (error) {
-            this.logger?.warn(`Failed to find expandable usages for ${collection}:${itemId}:`, error);
-            return [];
+            this.logger?.warn(`Failed to batch find expandable usages:`, error);
+            return usageMap;
         }
     }
     
