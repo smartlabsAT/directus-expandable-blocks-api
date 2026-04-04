@@ -20,7 +20,7 @@ export default defineEndpoint({
         router.get('/health', (_req: any, res: any) => {
             res.json({ 
                 status: 'ok', 
-                version: '1.0.0',
+                version: '0.3.0',
                 description: 'Expandable Blocks API - Relation/Usage Tracking'
             });
         });

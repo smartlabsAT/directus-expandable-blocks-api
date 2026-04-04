@@ -1,8 +1,6 @@
 name: Test
 
 on:
-  push:
-    branches: [ main, develop, testing ]
   pull_request:
     branches: [ main ]
 
@@ -12,7 +10,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x]
     
     steps:
     - uses: actions/checkout@v4
@@ -25,7 +23,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 9
+        version: 10
         run_install: false
     
     - name: Get pnpm store directory
@@ -75,7 +73,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 9
+        version: 10
         run_install: false
     
     - name: Get pnpm store directory
@@ -120,7 +118,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 9
+        version: 10
         run_install: false
     
     - name: Get pnpm store directory

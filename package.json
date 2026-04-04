@@ -1,17 +1,36 @@
 {
   "name": "directus-extension-expandable-blocks-api",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "API endpoint extension for expandable blocks",
   "author": "Christopher Schwarz <christopher@neugebauerschwarz.com>",
   "license": "MIT",
+  "homepage": "https://github.com/smartlabsAT/directus-expandable-blocks-api#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smartlabsAT/directus-expandable-blocks-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/smartlabsAT/directus-expandable-blocks-api/issues"
+  },
+  "keywords": [
+    "directus",
+    "directus-extension",
+    "directus-custom-endpoint",
+    "m2a",
+    "blocks",
+    "api",
+    "usage-tracking"
+  ],
   "type": "module",
   "files": [
     "dist/",
     "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
     "package.json"
   ],
   "engines": {
-    "node": ">=16"
+    "node": ">=20"
   },
   "directus:extension": {
     "type": "endpoint",
@@ -28,8 +47,8 @@
     "test": "vitest --config config/vitest.config.ts",
     "test:ui": "vitest --ui --config config/vitest.config.ts",
     "test:coverage": "vitest --coverage --config config/vitest.config.ts",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . -c config/eslint.config.js",
+    "lint:fix": "eslint . -c config/eslint.config.js --fix",
     "qodana": "./config/scripts/qodana-local.sh",
     "clean:outputs": "./config/scripts/cleanup-outputs.sh",
     "precommit": "npm run type-check && npm run lint",
@@ -41,19 +60,18 @@
     "release:major": "npm version major"
   },
   "devDependencies": {
-    "@directus/extensions-sdk": "^11.0.0",
-    "@directus/types": "^13.2.0",
-    "@eslint/js": "^9.34.0",
-    "@types/express": "^5.0.3",
-    "@types/knex": "^0.16.1",
-    "@types/node": "^20.10.5",
-    "@typescript-eslint/eslint-plugin": "^8.41.0",
-    "@typescript-eslint/parser": "^8.41.0",
-    "@vitest/coverage-v8": "^1.6.1",
-    "@vitest/ui": "^1.6.1",
-    "eslint": "^8.57.1",
-    "knex": "^3.1.0",
-    "typescript": "^5.3.3",
-    "vitest": "^1.6.1"
+    "@directus/extensions-sdk": "^17.1.1",
+    "@directus/types": "^15.0.1",
+    "@eslint/js": "^10.0.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.15",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/ui": "^4.1.2",
+    "eslint": "^10.1.0",
+    "knex": "^3.2.9",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   }
 }

@@ -88,5 +88,16 @@ export default [
     rules: {
       'no-console': 'off'
     }
+  },
+  {
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'coverage/',
+      'test-output/',
+      '*.min.js',
+      '.qodana/',
+      '**/*.d.ts'
+    ]
   }
 ];

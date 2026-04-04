@@ -32,7 +32,7 @@ describe('Health Endpoint', () => {
         expect(healthCall).toBeDefined();
         
         // Test the health endpoint handler
-        const healthHandler = healthCall[1];
+        const healthHandler = healthCall![1];
         const mockReq = {};
         const mockRes = { json: vi.fn() };
         
@@ -40,7 +40,7 @@ describe('Health Endpoint', () => {
         
         expect(mockRes.json).toHaveBeenCalledWith({
             status: 'ok',
-            version: '1.0.0',
+            version: '0.3.0',
             description: 'Expandable Blocks API - Relation/Usage Tracking'
         });
     });

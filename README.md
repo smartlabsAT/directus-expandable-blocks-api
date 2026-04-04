@@ -20,7 +20,7 @@ This extension focuses exclusively on relation/usage tracking - finding where co
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Build the extension
 npm run build
@@ -125,13 +125,13 @@ Each usage location includes:
 
 - Directus v11.0.0 or higher
 - Expandable Blocks interface extension
-- Node.js 16 or higher
+- Node.js 20 or higher
 
 ## Development
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Development mode with auto-reload
 npm run dev

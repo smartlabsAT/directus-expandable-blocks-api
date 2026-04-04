@@ -34,7 +34,7 @@ export class ServiceFactory {
                 ItemsService = DirectusItemsService;
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                throw new Error(`ItemsService not available in Directus context: ${errorMessage}`);
+                throw new Error(`ItemsService not available in Directus context: ${errorMessage}`, { cause: error });
             }
         }
         
