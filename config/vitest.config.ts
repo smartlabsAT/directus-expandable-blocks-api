@@ -1,11 +1,15 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  root: path.resolve(__dirname, '..'),
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./test/setup.ts'],
+    setupFiles: [path.resolve(__dirname, '../test/setup.ts')],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -21,8 +25,7 @@ export default defineConfig({
       ],
       include: [
         'src/**/*.ts'
-      ],
-      all: true
+      ]
     },
     include: [
       'test/**/*.test.ts',

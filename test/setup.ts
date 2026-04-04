@@ -17,7 +17,7 @@ global.console = {
 };
 
 // Mock Directus context for tests
-export const mockDirectusContext = {
+export const mockDirectusContext: Record<string, unknown> = {
   services: {
     ItemsService: vi.fn(),
   },

@@ -32,7 +32,7 @@ describe('Health Endpoint', () => {
         expect(healthCall).toBeDefined();
         
         // Test the health endpoint handler
-        const healthHandler = healthCall[1];
+        const healthHandler = healthCall![1];
         const mockReq = {};
         const mockRes = { json: vi.fn() };
         
